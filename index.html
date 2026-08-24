@@ -5,7 +5,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Study OS">
-<title>Study OS - Week 3</title>
+<title>Study OS</title>
 <style>
 :root{--bg:#0f1215;--panel:#171b20;--panel2:#1e242b;--line:#2a323b;--ink:#e8edf2;--dim:#93a1b0;--faint:#5e6b78;
 --accent:#4a9eff;--good:#3ecf8e;--bad:#ff6b6b;--warn:#f0b429;--r:14px}
@@ -332,7 +332,7 @@ function render(){
 /* ---------- home ---------- */
 function vHome(){
   document.getElementById('htitle').textContent=P.weekLabel;
-  let h=`<div class="card"><h1>Week 3</h1>
+  let h=`<div class="card"><h1>${esc(P.weekLabel||"This week")}</h1>
     <p class="muted" style="margin:10px 0 0">More this week, because you got through last week fast. Six blocks a day instead of five.</p>
     <p class="muted" style="margin:8px 0 0">The first maths session is the important one. Last week you were guessing at a method for multiplying fractions, so this week we go back and build the idea properly before any practice. Do not skip it, even if it looks easy at the start.</p>
     <p class="muted" style="margin:8px 0 0">German is in here every day. You did none of it last week.</p></div>

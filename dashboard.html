@@ -163,6 +163,8 @@ function sessions(){return (DATA&&DATA.sessions)||[]}
 function wrongs(){return (DATA&&DATA.wrong)||[]}
 function daily(){const d=(DATA&&DATA.daily)||[];return d.length?d[d.length-1]:null}
 function photos(){return (DATA&&DATA.photos)||[]}
+function retries(){return (DATA&&DATA.retry)||[]}
+function howdone(){return (DATA&&DATA.howdone)||[]}
 function num(x){const n=Number(x);return isFinite(n)?n:0}
 
 function bySubject(){
@@ -188,13 +190,13 @@ function render(){
   const app=document.getElementById('app');
   if(!(CFG.sync||'').trim()){app.innerHTML=vConnect();wire();return}
   let h=`<div class="tabs">
-    ${['progress','What to teach','Answers','Writing','Working','Curriculum'].map((t,i)=>{
-      const k=['progress','teach','answers','writing','working','curriculum'][i];
+    ${['progress','What to teach','Answers','Second go','How it was done','Writing','Working','Curriculum'].map((t,i)=>{
+      const k=['progress','teach','answers','retry','howdone','writing','working','curriculum'][i];
       return `<button class="tab ${TAB===k?'on':''}" data-tab="${k}">${t==='progress'?'Progress':t}</button>`}).join('')}
   </div>`;
   if(LOADING&&!DATA)h+=`<div class="card"><div class="empty">Loading...</div></div>`;
   else if(ERR)h+=`<div class="nb"><b>Could not load.</b> ${esc(ERR)}</div>`;
-  h+=({progress:vProgress,teach:vTeach,answers:vAnswers,writing:vWriting,working:vWorking,curriculum:vCurriculum}[TAB])();
+  h+=({progress:vProgress,teach:vTeach,answers:vAnswers,retry:vRetry,howdone:vHowDone,writing:vWriting,working:vWorking,curriculum:vCurriculum}[TAB]||vProgress)();
   app.innerHTML=h;wire();
 }
 
@@ -349,6 +351,50 @@ function vAnswers(){
   return h+`</div>`;
 }
 
+function vRetry(){
+  const r=retries();
+  let h=`<div class="card"><h2>Second go</h2>
+  <p class="sec small" style="margin:10px 0 0">His own idea. When he gets things wrong, he can ask for more questions on those exact topics. The only number that matters here is first time against second time.</p>`;
+  if(!r.length){h+=`<div class="empty">He has not asked for extra practice yet. The button appears on his result screen whenever he has something wrong.</div></div>`;return h}
+  let up=0;
+  r.forEach(x=>{if(String(x.Improved).toLowerCase()==='yes')up++});
+  h+=`<div class="row"><span class="lb">Times he went back</span><span class="vl">${r.length}</span></div>
+      <div class="row"><span class="lb">Times he came out better</span><span class="vl">${up} of ${r.length}</span></div>`;
+  h+=`<table><thead><tr><th>Session</th><th class="n">First</th><th class="n">Second</th><th>Still wrong</th></tr></thead><tbody>`;
+  r.slice().reverse().forEach(x=>{
+    const f=num(x['First time']), ft=num(x['Out of']), s2=num(x.Retry), st=num(x['Retry out of']);
+    const fp=ft?Math.round(f/ft*100):0, sp=st?Math.round(s2/st*100):0;
+    h+=`<tr><td>${esc(x.Session||'')}</td><td class="n">${fp}%</td>
+        <td class="n"><span class="pill ${sp>=fp?'good':'bad'}">${sp}%</span></td>
+        <td class="muted">${esc(x['Still wrong']||'nothing')}</td></tr>`;
+  });
+  return h+`</tbody></table></div>`;
+}
+
+function vHowDone(){
+  const d=howdone();
+  let h=`<div class="card"><h2>How it was done</h2>
+  <p class="sec small" style="margin:10px 0 0">Time spent, pasted text, and whether he opened the model answer before writing anything. He is told in the app that you see this, so it is a check rather than surveillance. It catches pasting. It does not catch him reading another app on his phone and typing it out, which is why the second go and the Friday test matter more.</p>`;
+  if(!d.length){h+=`<div class="empty">Nothing yet. This fills up as he works.</div></div>`;return h}
+  const flagged=d.filter(x=>String(x['Worth a look']||'').trim());
+  if(flagged.length){
+    h+=`<h3 style="margin-top:16px">Worth a look</h3>`;
+    flagged.slice().reverse().forEach(x=>{
+      h+=`<div class="qa"><div class="q">${esc(x.Session||'')}</div>
+          <div class="a"><span class="wrongv">${esc(x['Worth a look'])}</span></div></div>`;
+    });
+  } else h+=`<div class="row"><span class="lb">Anything worth a look</span><span class="vl">nothing flagged</span></div>`;
+  h+=`<button class="btn ghost wide" data-toggle="hd">Show everything</button>
+    <div id="hd" style="display:none"><table><thead><tr><th>Session</th><th class="n">Mins</th><th class="n">Pastes</th><th class="n">Chars</th><th class="n">Model early</th><th class="n">Away</th></tr></thead><tbody>`;
+  d.slice().reverse().forEach(x=>{
+    h+=`<tr><td>${esc(x.Session||'')}</td><td class="n">${esc(x.Minutes||'')}</td>
+        <td class="n">${num(x.Pastes)}</td><td class="n">${num(x['Chars pasted'])}</td>
+        <td class="n">${num(x['Model answer opened early'])}</td>
+        <td class="n">${Math.round(num(x['Away (sec)'])/60)}m</td></tr>`;
+  });
+  return h+`</tbody></table></div></div>`;
+}
+
 function vWorking(){
   const p=photos();
   let h=`<div class="card"><h2>His working</h2>
@@ -399,7 +445,7 @@ function wire(){
   document.querySelectorAll('[data-toggle]').forEach(el=>{
     el.onclick=()=>{const t=document.getElementById(el.getAttribute('data-toggle'));
       const on=t.style.display==='none';t.style.display=on?'block':'none';
-      el.textContent=on?'Hide the table':'Show as a table'}});
+      el.textContent=on?'Hide':(el.getAttribute('data-toggle')==='hd'?'Show everything':'Show as a table')}});
   const tip=document.getElementById('tip');
   document.querySelectorAll('[data-tip]').forEach(el=>{
     const show=e=>{tip.textContent=el.getAttribute('data-tip');tip.style.opacity='1';

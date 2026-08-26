@@ -730,10 +730,15 @@ function checkContent(loud){
   CHECKING=true;render();
   jsonp(url,'want=version&',8000,v=>{
     if(!v||!v.version){finish(loud?'Nothing released yet.':null);return}
-    if(v.version===VER){finish(loud?'Already on the latest.':null);return}
+    /* Only ever move FORWARD. Version strings sort correctly (w3-2026-08-13 <
+       w4-2026-08-24), so a release that is the same age or older than the week
+       already loaded is ignored. Without this, a page shipped with a newer week
+       built in gets dragged back to whatever the release file still holds. */
+    if(v.version<=VER){finish(loud?'Already on the latest.':null);return}
     jsonp(url,'want=content&',45000,r=>{
       const c=r&&r.content;
       if(!c||c.error){finish(loud?('Could not read the new work. '+(c&&c.error?c.error:'')):null);return}
+      if(!c.version||c.version<=VER){finish(loud?'Already on the latest.':null);return}
       P=c;try{localStorage.setItem('surajOS_content',JSON.stringify(c))}catch(e){}
       bindContent();view={name:'home'};
       finish(loud?('Updated to '+(c.weekLabel||c.version)+'.'):null);
